@@ -1,9 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check, Sparkles, ArrowRight } from 'lucide-react';
-
-interface PricingProps {
-  onLaunch: () => void;
-}
 
 type BillingCycle = 'monthly' | 'annual';
 
@@ -63,7 +60,8 @@ const plans = [
   },
 ];
 
-export default function Pricing({ onLaunch }: PricingProps) {
+export default function Pricing() {
+  const navigate = useNavigate();
   const [billing, setBilling] = useState<BillingCycle>('monthly');
 
   return (
@@ -157,7 +155,7 @@ export default function Pricing({ onLaunch }: PricingProps) {
 
                   {/* CTA */}
                   <button
-                    onClick={onLaunch}
+                    onClick={() => navigate('/dashboard')}
                     className={`mt-5 w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300 ${
                       plan.highlighted
                         ? 'bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-lg shadow-brand-500/25 hover:shadow-brand-500/40 hover:scale-[1.02]'

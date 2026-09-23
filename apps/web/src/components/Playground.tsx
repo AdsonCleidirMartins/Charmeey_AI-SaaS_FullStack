@@ -138,7 +138,7 @@ export default function Playground() {
             The <span className="text-brand-gradient">Playground</span>
           </h2>
           <p className="mt-4 text-white/50 text-lg">
-            Type a prompt and watch OmniAI generate a response in real time via backend API. Switch between text, code, and data output modes.
+            Type a prompt and watch CharmeeyAI generate a response in real time via backend API. Switch between text, code, and data output modes.
           </p>
         </div>
 
@@ -150,7 +150,7 @@ export default function Playground() {
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
-              <span className="text-sm font-medium text-white/80">OmniAI Playground</span>
+              <span className="text-sm font-medium text-white/80">CharmeeyAI Playground</span>
             </div>
             <div className="flex items-center gap-2">
               {/* Output type switcher */}
@@ -189,7 +189,7 @@ export default function Playground() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleGenerate();
                 }}
-                placeholder="Ask OmniAI anything... e.g. 'Analyze Q4 revenue and generate a report'"
+                placeholder="Ask CharmeeyAI anything... e.g. 'Analyze Q4 revenue and generate a report'"
                 className="flex-1 w-full resize-none rounded-xl glass p-4 text-sm text-white/80 placeholder:text-white/30 font-mono leading-relaxed focus:outline-none focus:border-brand-500/40 transition-colors min-h-[200px]"
               />
 

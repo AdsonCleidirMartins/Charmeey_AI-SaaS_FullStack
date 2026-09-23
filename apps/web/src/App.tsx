@@ -1,59 +1,52 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Features from '@/components/Features';
 import Playground from '@/components/Playground';
+import Blog from '@/components/Blog';
+import Community from '@/components/Community';
 import Pricing from '@/components/Pricing';
 import Footer from '@/components/Footer';
 import Dashboard from '@/components/Dashboard';
 import AuthPage from '@/components/AuthPage';
 
-type View = 'landing' | 'auth' | 'dashboard';
-type AuthMode = 'signin' | 'signup';
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
-export default function App() {
-  const [view, setView] = useState<View>('landing');
-  const [authMode, setAuthMode] = useState<AuthMode>('signin');
-
-  if (view === 'dashboard') {
-    return (
-      <Dashboard
-        onExit={() => setView('landing')}
-        onSignIn={() => {
-          setAuthMode('signin');
-          setView('auth');
-        }}
-      />
-    );
-  }
-
-  if (view === 'auth') {
-    return (
-      <AuthPage
-        mode={authMode}
-        onSwitch={setAuthMode}
-        onSuccess={() => setView('dashboard')}
-        onBack={() => setView('landing')}
-      />
-    );
-  }
-
+function Landing() {
   return (
     <div className="min-h-screen bg-ink-950 relative">
-      <Navbar
-        onLaunch={() => setView('dashboard')}
-        onSignIn={() => {
-          setAuthMode('signin');
-          setView('auth');
-        }}
-      />
+      <Navbar />
       <main>
-        <Hero onLaunch={() => setView('dashboard')} />
+        <Hero />
         <Features />
         <Playground />
-        <Pricing onLaunch={() => setView('dashboard')} />
+        <Blog />
+        <Community />
+        <Pricing />
       </main>
-      <Footer onLaunch={() => setView('dashboard')} />
+      <Footer />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/dashboard" element={<Navigate to="/dashboard/chats" replace />} />
+        <Route path="/dashboard/:section" element={<Dashboard />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }

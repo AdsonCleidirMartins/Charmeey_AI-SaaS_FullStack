@@ -1,16 +1,12 @@
 import { useState, type FormEvent } from 'react';
-import { Sparkles, ArrowLeft, LogIn, UserPlus, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, LogIn, UserPlus, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
-interface AuthPageProps {
-  mode: 'signin' | 'signup';
-  onSwitch: (mode: 'signin' | 'signup') => void;
-  onSuccess: () => void;
-  onBack: () => void;
-}
-
-export default function AuthPage({ mode, onSwitch, onSuccess, onBack }: AuthPageProps) {
+export default function AuthPage() {
+  const navigate = useNavigate();
   const { signIn, signUp } = useAuth();
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +23,7 @@ export default function AuthPage({ mode, onSwitch, onSuccess, onBack }: AuthPage
       } else {
         await signIn(email, password);
       }
-      onSuccess();
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
@@ -44,14 +40,9 @@ export default function AuthPage({ mode, onSwitch, onSuccess, onBack }: AuthPage
       <div className="relative w-full max-w-md animate-fade-down">
         {/* Brand */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 blur-md opacity-60" />
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-600">
-              <Sparkles className="h-5 w-5 text-white" strokeWidth={2.5} />
-            </div>
-          </div>
+          <img src="/favicon.svg" alt="CharmeeyAI" className="h-10 w-10" />
           <span className="text-2xl font-bold tracking-tight text-white">
-            Omni<span className="text-brand-400">AI</span>
+            Charmeey<span className="text-brand-400">AI</span>
           </span>
         </div>
 
@@ -59,7 +50,7 @@ export default function AuthPage({ mode, onSwitch, onSuccess, onBack }: AuthPage
           {/* Mode tabs */}
           <div className="flex items-center gap-1 glass rounded-lg p-1 mb-6">
             <button
-              onClick={() => { onSwitch('signin'); setError(''); }}
+              onClick={() => { setMode('signin'); setError(''); }}
               className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-all ${
                 mode === 'signin' ? 'bg-brand-600/30 text-brand-300' : 'text-white/50 hover:text-white/80'
               }`}
@@ -68,7 +59,7 @@ export default function AuthPage({ mode, onSwitch, onSuccess, onBack }: AuthPage
               Sign In
             </button>
             <button
-              onClick={() => { onSwitch('signup'); setError(''); }}
+              onClick={() => { setMode('signup'); setError(''); }}
               className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-all ${
                 mode === 'signup' ? 'bg-brand-600/30 text-brand-300' : 'text-white/50 hover:text-white/80'
               }`}
@@ -157,7 +148,7 @@ export default function AuthPage({ mode, onSwitch, onSuccess, onBack }: AuthPage
             <p className="text-xs text-white/40 text-center">
               Just exploring?
               <button
-                onClick={onSuccess}
+                onClick={() => navigate('/dashboard')}
                 className="text-brand-400 hover:text-brand-300 font-medium ml-1"
               >
                 Continue as Demo
@@ -167,7 +158,7 @@ export default function AuthPage({ mode, onSwitch, onSuccess, onBack }: AuthPage
         </div>
 
         <button
-          onClick={onBack}
+          onClick={() => navigate('/')}
           className="mt-6 mx-auto flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />

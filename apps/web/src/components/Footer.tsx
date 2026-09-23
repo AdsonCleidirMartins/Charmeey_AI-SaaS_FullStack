@@ -1,8 +1,5 @@
-import { Sparkles, Github, Twitter, Linkedin } from 'lucide-react';
-
-interface FooterProps {
-  onLaunch: () => void;
-}
+import { useNavigate } from 'react-router-dom';
+import { Github, Twitter, Linkedin } from 'lucide-react';
 
 const footerLinks = [
   {
@@ -23,7 +20,16 @@ const footerLinks = [
   },
 ];
 
-export default function Footer({ onLaunch }: FooterProps) {
+const linkHrefs: Record<string, string> = {
+  Features: '#features',
+  Playground: '#playground',
+  Pricing: '#pricing',
+  Blog: '#blog',
+  Community: '#room',
+};
+
+export default function Footer() {
+  const navigate = useNavigate();
   return (
     <footer className="relative border-t border-white/[0.06] pt-16 pb-8 overflow-hidden">
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-brand-600/5 rounded-full blur-[100px]" />
@@ -33,14 +39,9 @@ export default function Footer({ onLaunch }: FooterProps) {
           {/* Brand */}
           <div className="lg:col-span-2">
             <a href="#" className="flex items-center gap-2.5 mb-4">
-              <div className="relative">
-                <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 blur-md opacity-60" />
-                <div className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-600">
-                  <Sparkles className="h-5 w-5 text-white" strokeWidth={2.5} />
-                </div>
-              </div>
+              <img src="/favicon.svg" alt="CharmeeyAI" className="h-9 w-9" />
               <span className="text-lg font-bold tracking-tight">
-                Omni<span className="text-brand-400">AI</span>
+                Charmeey<span className="text-brand-400">AI</span>
               </span>
             </a>
             <p className="text-sm text-white/50 max-w-xs leading-relaxed mb-5">
@@ -72,7 +73,7 @@ export default function Footer({ onLaunch }: FooterProps) {
                 {col.links.map((link) => (
                   <li key={link}>
                     <a
-                      href="#"
+                      href={linkHrefs[link] || '#'}
                       className="text-sm text-white/50 hover:text-white transition-colors"
                     >
                       {link}
@@ -97,7 +98,7 @@ export default function Footer({ onLaunch }: FooterProps) {
               className="flex-1 sm:w-64 rounded-lg glass px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-brand-500/40 transition-colors"
             />
             <button
-              onClick={onLaunch}
+              onClick={() => navigate('/dashboard')}
               className="rounded-lg bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40 transition-all"
             >
               Subscribe
@@ -108,7 +109,7 @@ export default function Footer({ onLaunch }: FooterProps) {
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/[0.06]">
           <p className="text-xs text-white/40">
-            © 2026 OmniAI, Inc. All rights reserved.
+            © 2026 CharmeeyAI, Inc. All rights reserved.
           </p>
           <div className="flex items-center gap-2 text-xs text-white/40">
             <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />

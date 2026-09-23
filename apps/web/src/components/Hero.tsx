@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight, Play, Zap, Send } from 'lucide-react';
-
-interface HeroProps {
-  onLaunch: () => void;
-}
 
 const demoPrompts = [
   'Summarize the latest AI research papers on transformers...',
@@ -12,7 +9,7 @@ const demoPrompts = [
   'Create a customer support response for a billing issue...',
 ];
 
-const demoResponse = `OmniAI connects your frontend directly to Google Gemini in real time. Here's a concise summary:
+const demoResponse = `CharmeeyAI connects your frontend directly to Google Gemini in real time. Here's a concise summary:
 
 1. **Live Gemini Integration** — Every prompt is handled by Gemini over the backend API
 2. **Instant Streaming** — Responses render the moment they're generated
@@ -21,7 +18,8 @@ const demoResponse = `OmniAI connects your frontend directly to Google Gemini in
 
 These capabilities power production AI workflows end to end.`;
 
-export default function Hero({ onLaunch }: HeroProps) {
+export default function Hero() {
+  const navigate = useNavigate();
   const [promptIndex, setPromptIndex] = useState(0);
   const [typedPrompt, setTypedPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -106,13 +104,13 @@ export default function Hero({ onLaunch }: HeroProps) {
 
             {/* Subheadline */}
              <p className="mt-6 text-lg text-white/60 max-w-xl mx-auto lg:mx-0 animate-fade-up" style={{ animationDelay: '0.1s' }}>
-               OmniAI connects your frontend directly to Google Gemini and backend microservices — authentication, sessions, and live AI chat built in.
+               CharmeeyAI connects your frontend directly to Google Gemini and backend microservices — authentication, sessions, and live AI chat built in.
              </p>
 
             {/* CTAs */}
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start animate-fade-up" style={{ animationDelay: '0.2s' }}>
               <button
-                onClick={onLaunch}
+                onClick={() => navigate('/dashboard')}
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-violet-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 hover:shadow-brand-500/50 transition-all duration-300 hover:scale-[1.02]"
               >
                 <Zap className="h-4 w-4 fill-white" />
@@ -161,7 +159,7 @@ export default function Hero({ onLaunch }: HeroProps) {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-white/40">
                   <Sparkles className="h-3.5 w-3.5 text-brand-400" />
-                  <span className="font-mono">omni-ai / playground</span>
+                  <span className="font-mono">charmeey-ai / playground</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -207,7 +205,7 @@ export default function Hero({ onLaunch }: HeroProps) {
                         <Sparkles className="h-3.5 w-3.5 text-white" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs text-white/40 mb-2 font-mono">omni-ai · live</p>
+                        <p className="text-xs text-white/40 mb-2 font-mono">charmeey-ai · live</p>
                         <div className="text-sm text-white/75 leading-relaxed whitespace-pre-line font-mono">
                           {typedResponse}
                           {typedResponse.length < demoResponse.length && (

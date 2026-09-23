@@ -1,4 +1,4 @@
-# AI-Powered SaaS Platform (OmniAI) — Monorepo
+# AI-Powered SaaS Platform (CharmeeyAI) — Monorepo
 
 A modern, production-grade AI-powered SaaS platform monorepo combining a **React/TypeScript frontend**, **Prisma database package**, **Gemini AI SDK**, and a **FastAPI Python AI microservice** with PostgreSQL-backed authentication.
 

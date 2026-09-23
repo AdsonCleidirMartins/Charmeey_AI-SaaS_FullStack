@@ -1,6 +1,7 @@
 export const API_URL = 'http://localhost:8000';
+export const API_WS_URL = 'ws://localhost:8000';
 
-const TOKEN_KEY = 'omninai_token';
+const TOKEN_KEY = 'charmeeyai_token';
 
 export interface User {
   id: number;
@@ -111,4 +112,107 @@ export async function generateChat(
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export interface RoomMessage {
+  id: number;
+  user_id?: number;
+  name: string;
+  content: string;
+  created_at: string | null;
+  image?: string;
+}
+
+export type PresenceUser = { id: number; name: string };
+
+export interface RoomState {
+  messages: RoomMessage[];
+  online: number;
+  users: PresenceUser[];
+}
+
+export async function getRoomMessages(limit = 50): Promise<RoomState> {
+  return apiRequest(`/api/v1/room/messages?limit=${limit}`);
+}
+
+export async function postRoomMessage(content: string): Promise<RoomMessage> {
+  return apiRequest('/api/v1/room/messages', {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+}
+
+export async function deleteRoomMessages(ids: number[]): Promise<{ ok: boolean; deleted: number[] }> {
+  return apiRequest('/api/v1/room/messages', {
+    method: 'DELETE',
+    body: JSON.stringify({ ids }),
+  });
+}
+
+export async function deleteAllRoomMessages(): Promise<{ ok: boolean; deleted: number[] }> {
+  return apiRequest('/api/v1/room/messages/all', { method: 'DELETE' });
+}
+
+export async function deleteDmMessages(ids: number[]): Promise<{ ok: boolean; deleted: number[] }> {
+  return apiRequest('/api/v1/dm/messages', {
+    method: 'DELETE',
+    body: JSON.stringify({ ids }),
+  });
+}
+
+export async function deleteAllDmMessages(peerId: number): Promise<{ ok: boolean; deleted: number[] }> {
+  return apiRequest(`/api/v1/dm/messages/all?peer_id=${peerId}`, { method: 'DELETE' });
+}
+
+export async function getUsers(q = ''): Promise<{ users: User[] }> {
+  return apiRequest(`/api/v1/users${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+}
+
+export interface DirectMessage {
+  id: number;
+  sender_id: number;
+  recipient_id: number;
+  name: string;
+  content: string;
+  created_at: string | null;
+}
+
+export interface Conversation {
+  peer_id: number;
+  peer_name: string;
+  last_message: string;
+  last_at: string | null;
+}
+
+export async function getConversations(): Promise<{ conversations: Conversation[] }> {
+  return apiRequest('/api/v1/dm/conversations');
+}
+
+export async function getDmMessages(peerId: number): Promise<{ messages: DirectMessage[] }> {
+  return apiRequest(`/api/v1/dm/${peerId}/messages`);
+}
+
+export async function sendDm(recipientId: number, content: string): Promise<DirectMessage> {
+  return apiRequest('/api/v1/dm/send', {
+    method: 'POST',
+    body: JSON.stringify({ recipient_id: recipientId, content }),
+  });
+}
+
+export interface NotificationItem {
+  id: number;
+  kind: string;
+  title: string;
+  body: string | null;
+  sender_id: number | null;
+  is_read: boolean;
+  created_at: string | null;
+}
+
+export async function getNotifications(): Promise<{ notifications: NotificationItem[] }> {
+  return apiRequest('/api/v1/notifications');
+}
+
+export async function deleteNotification(id: number): Promise<{ ok: boolean }> {
+  return apiRequest(`/api/v1/notifications/${id}`, { method: 'DELETE' });
 }

@@ -12,42 +12,36 @@ const features = [
     icon: Workflow,
     title: 'Automated Workflows',
     desc: 'Build multi-step AI pipelines with visual orchestration. Chain prompts, conditions, and API calls without writing glue code.',
-    accent: 'from-brand-500 to-violet-500',
     tag: 'Visual Builder',
   },
   {
     icon: BarChart3,
     title: 'Real-time Analytics',
     desc: 'Track token usage, latency, cost, and quality metrics across every call. Dashboards update live as your prompts execute.',
-    accent: 'from-cyan-500 to-brand-500',
     tag: 'Live Metrics',
   },
   {
     icon: MessageSquareCode,
     title: 'Custom Prompts',
     desc: 'Version-controlled prompt templates with A/B testing, variables, and conditional logic. Roll back instantly when needed.',
-    accent: 'from-violet-500 to-pink-500',
     tag: 'Versioned',
   },
   {
     icon: ShieldCheck,
     title: 'Enterprise Security',
     desc: 'SOC 2 Type II, GDPR, and HIPAA compliant. End-to-end encryption, SSO, granular RBAC, and audit logs out of the box.',
-    accent: 'from-emerald-500 to-cyan-500',
     tag: 'SOC 2',
   },
   {
     icon: Zap,
     title: 'Lightning Fast',
     desc: 'Sub-200ms inference with our global edge network. Streaming responses keep your users engaged from the first token.',
-    accent: 'from-amber-500 to-brand-500',
     tag: '<200ms',
   },
   {
     icon: GitBranch,
     title: 'Version Control',
     desc: 'Every prompt, workflow, and config is versioned. Review changes, create branches, and deploy with confidence.',
-    accent: 'from-rose-500 to-violet-500',
     tag: 'Git-like',
   },
 ];
@@ -57,9 +51,9 @@ export default function Features() {
     <section id="features" className="relative py-24 overflow-hidden">
       <div className="absolute top-1/2 left-0 w-[600px] h-[600px] bg-brand-600/5 rounded-full blur-[120px] -translate-y-1/2" />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
         {/* Section header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
+        <div className="max-w-2xl mb-16">
           <div className="inline-flex items-center gap-2 rounded-full glass px-3 py-1 mb-4">
             <span className="text-xs font-medium text-brand-400">Platform</span>
           </div>
@@ -72,46 +66,28 @@ export default function Features() {
           </p>
         </div>
 
-        {/* Feature grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* Editorial feature list */}
+        <div className="divide-y divide-white/[0.06]">
           {features.map((feature, i) => (
             <div
               key={feature.title}
-              className="group relative glass glass-hover rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1"
-              style={{ animationDelay: `${i * 0.05}s` }}
+              className="group grid sm:grid-cols-[64px_1fr] gap-x-6 gap-y-3 py-8 transition-colors hover:bg-white/[0.02] sm:px-4 sm:-mx-4 rounded-xl"
             >
-              {/* Hover glow */}
-              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.accent} opacity-0 group-hover:opacity-[0.07] transition-opacity duration-500`} />
-
-              {/* Border highlight on hover */}
-              <div className="absolute inset-0 rounded-2xl border border-white/0 group-hover:border-white/20 transition-all duration-300 pointer-events-none" />
-
-              <div className="relative">
-                {/* Icon */}
-                <div className="mb-5">
-                  <div className={`relative inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${feature.accent} p-[1px]`}>
-                    <div className="flex h-full w-full items-center justify-center rounded-xl bg-ink-800">
-                      <feature.icon className="h-6 w-6 text-white" strokeWidth={1.8} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tag */}
-                <span className="inline-block text-[10px] font-mono font-medium text-white/40 uppercase tracking-wider mb-2">
-                  {feature.tag}
+              <div className="flex items-start justify-between sm:block">
+                <span className="font-mono text-sm text-white/25 group-hover:text-brand-400/70 transition-colors">
+                  {String(i + 1).padStart(2, '0')}
                 </span>
-
-                {/* Title + desc */}
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-white/50 leading-relaxed">
-                  {feature.desc}
-                </p>
+                <feature.icon className="h-5 w-5 text-white/30 group-hover:text-brand-400 transition-colors" strokeWidth={1.8} />
               </div>
-
-              {/* Corner accent */}
-              <div className={`absolute bottom-0 right-0 h-20 w-20 rounded-tl-3xl rounded-br-2xl bg-gradient-to-tl ${feature.accent} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
+              <div>
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-1.5">
+                  <h3 className="text-lg font-semibold text-white">{feature.title}</h3>
+                  <span className="text-[10px] font-mono font-medium text-brand-400/80 uppercase tracking-wider">
+                    {feature.tag}
+                  </span>
+                </div>
+                <p className="text-sm text-white/50 leading-relaxed max-w-2xl">{feature.desc}</p>
+              </div>
             </div>
           ))}
         </div>

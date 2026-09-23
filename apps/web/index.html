@@ -2,9 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OmniAI — Intelligence, Amplified</title>
+    <title>CharmeeyAI — Intelligence, Amplified</title>
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('charmeey_theme') || 'system';
+          var isLight = theme === 'light' || (theme === 'system' && matchMedia('(prefers-color-scheme: light)').matches);
+          var value = isLight ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', value);
+          document.documentElement.style.colorScheme = value;
+        } catch (e) {}
+      })();
+    </script>
     <meta property="og:image" content="https://bolt.new/static/og_default.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://bolt.new/static/og_default.png" />
