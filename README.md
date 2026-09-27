@@ -23,16 +23,19 @@ Modern, production-grade AI-powered SaaS platform combining a **React / Vite fro
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js (v18+)
 - Python 3.10+
 - Docker & Docker Compose (optional, for local PostgreSQL/Redis/MinIO)
 
 ### 1. Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### 2. Run with Docker (Recommended)
+
 ```bash
 # Start infrastructure (PostgreSQL, Redis, MinIO)
 npm run docker:up
@@ -40,18 +43,22 @@ npm run docker:up
 # Start frontend development server
 npm run dev:web
 ```
+
 Open [http://localhost:5173](http://localhost:5173).
 
 ### 3. Run Locally (Without Docker)
+
 - **Database & Python Service:**
   Ensure PostgreSQL is running and `.env` has your `DATABASE_URL`.
+
   ```bash
   npx prisma generate --schema=packages/database/prisma/schema.prisma
-  
+
   cd services/ai
   pip install -r requirements.txt
   uvicorn app.main:app --reload --port 8000
   ```
+
 - **Frontend:**
   ```bash
   npm run dev:web
@@ -72,17 +79,20 @@ Open [http://localhost:5173](http://localhost:5173).
 ## GitHub Guide & Contribution
 
 1. **Clone the repository:**
+
    ```bash
-   git clone https://github.com/charmeey/AI-Powered-Saas.git
+   git clone https://github.com/charmeey/Charmeey_AI-SaaS_FullStack.git
    cd Charmeey_AI-SaaS_FullStack
    ```
 
 2. **Create a feature branch:**
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
 
 3. **Commit your changes:**
+
    ```bash
    git add .
    git commit -m "feat: description of your feature"
@@ -92,9 +102,10 @@ Open [http://localhost:5173](http://localhost:5173).
    ```bash
    git push origin feature/your-feature-name
    ```
-   Navigate to [GitHub Repository](https://github.com/charmeey/AI-Powered-Saas) to open a Pull Request.
+   Navigate to [GitHub Repository](https://github.com/charmeey/Charmeey_AI-SaaS_FullStack) to open a Pull Request.
 
 ---
 
 ## License
+
 MIT
