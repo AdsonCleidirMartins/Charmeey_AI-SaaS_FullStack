@@ -44,6 +44,46 @@ Base = declarative_base()
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
+def ensure_database(url: str) -> None:
+    """Create the target database if it does not exist.
+
+    Auto-creates the database listed in DATABASE_URL so the service can boot
+    on a fresh PostgreSQL instance. Tables are created later via
+    Base.metadata.create_all().
+    """
+    import urllib.parse as _up
+
+    parsed = _up.urlparse(url)
+    dbname = parsed.path.lstrip("/")
+    if not dbname:
+        return
+    # Build a maintenance URL pointing at the default 'postgres' database so we
+    # can connect before the target DB exists.
+    maint_path = "/postgres"
+    maint_url = _up.urlunparse((parsed.scheme, parsed.netloc, maint_path, "", "", parsed.query))
+    maint_engine = None
+    try:
+        maint_engine = create_engine(maint_url, echo=False)
+        with maint_engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+            exists = conn.execute(
+                text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": dbname}
+            ).fetchone()
+            if not exists:
+                conn.execute(text(f'CREATE DATABASE "{dbname}"'))
+                print(f"[db] created database '{dbname}'")
+    except Exception:
+        # If the maintenance connection fails (e.g. 'postgres' db removed, no
+        # CREATE DATABASE privileges, or server already running the target),
+        # do not crash startup; the main engine will surface the real error.
+        pass
+    finally:
+        if maint_engine:
+            maint_engine.dispose()
+
+
+ensure_database(DATABASE_URL)
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -330,10 +370,11 @@ DEFAULT_MODEL = "gemini-3.5-flash"
 
 # OpenAI-compatible providers. Order = fallback priority.
 # Each entry: (key env var, base url env var, model env var, label)
+# (key_env, base_env, model_env, default_model, vision_supported)
 OPENAI_PROVIDERS = [
-    ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "gpt-4o-mini"),
-    ("GROQ_API_KEY", "GROQ_BASE_URL", "GROQ_MODEL", "openai/gpt-oss-20b"),
-    ("OPENROUTER_API_KEY", "OPENROUTER_BASE_URL", "OPENROUTER_MODEL", "openai/gpt-4o-mini"),
+    ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL", "gpt-4o-mini", True),
+    ("GROQ_API_KEY", "GROQ_BASE_URL", "GROQ_MODEL", "qwen/qwen3.8-27b", True),
+    ("OPENROUTER_API_KEY", "OPENROUTER_BASE_URL", "OPENROUTER_MODEL", "openai/gpt-4o-mini", True),
 ]
 OPENAI_DEFAULT_BASE_URLS = {
     "OPENAI_.*": "https://api.openai.com/v1",
@@ -386,7 +427,6 @@ def _call_openai(api_key: str, model: str, system: str, parts: List[object], bas
     if base_url:
         client_kwargs["base_url"] = base_url
     client = OpenAI(**client_kwargs)
-    content: List[object] = []
     prompt = ""
     image = None
     for part in parts:
@@ -399,7 +439,7 @@ def _call_openai(api_key: str, model: str, system: str, parts: List[object], bas
     text_block: Dict[str, object] = {"type": "text", "text": prompt or "Describe this file."}
     if image:
         mime = image.get("mime") or "image/png"
-        content = [
+        content: object = [
             text_block,
             {
                 "type": "image_url",
@@ -407,7 +447,7 @@ def _call_openai(api_key: str, model: str, system: str, parts: List[object], bas
             },
         ]
     else:
-        content = [text_block]
+        content = prompt or "Describe this file."
     messages: List[Dict[str, object]] = []
     if system and system.strip():
         messages.append({"role": "system", "content": system})
@@ -442,7 +482,9 @@ def generate_ai_response(req: GenerateRequest, authorization: Optional[str] = He
 
         # 1) OpenAI-compatible providers: text + images. Raw files need Gemini.
         if not file_part:
-            for key_env, base_env, model_env, default_model in OPENAI_PROVIDERS:
+            for key_env, base_env, model_env, default_model, vision_ok in OPENAI_PROVIDERS:
+                if image_part and not vision_ok:
+                    continue
                 api_key = os.getenv(key_env)
                 if not api_key:
                     continue

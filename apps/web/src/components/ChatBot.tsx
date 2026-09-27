@@ -200,7 +200,7 @@ export default function ChatBot() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 z-[70] w-[min(24rem,calc(100vw-2rem))] h-[min(480px,calc(100vh-8rem))] flex flex-col glass-strong rounded-2xl shadow-2xl shadow-black/50 overflow-hidden animate-fade-down origin-bottom-right">
+        <div className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 z-[70] w-[min(30rem,calc(100vw-2rem))] h-[min(600px,calc(100vh-8rem))] flex flex-col glass-strong rounded-2xl shadow-2xl shadow-black/50 overflow-hidden animate-fade-down origin-bottom-right">
           {/* Header */}
           <div className="flex items-center justify-between px-4 h-14 border-b border-white/[0.06] bg-gradient-to-r from-brand-600/20 to-violet-600/10">
             <div className="flex items-center gap-2.5">
@@ -251,7 +251,7 @@ export default function ChatBot() {
                         title="Clear the conversation"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                        Clear all
+                        <span className="whitespace-nowrap">Clear all</span>
                       </button>
                     </>
                   )}

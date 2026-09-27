@@ -1,5 +1,8 @@
-export const API_URL = 'http://localhost:8000';
-export const API_WS_URL = 'ws://localhost:8000';
+const apiBase = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '');
+export const API_URL = apiBase || '';
+const wsProto = (apiBase ?? location.protocol).startsWith('https') ? 'wss' : 'ws';
+let wsHost = apiBase ? apiBase.replace(/^https?:\/\//, '') : location.host;
+export const API_WS_URL = `${wsProto}://${wsHost}`;
 
 const TOKEN_KEY = 'charmeeyai_token';
 
