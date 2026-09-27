@@ -4,6 +4,10 @@ Modern, production-grade AI-powered SaaS platform combining a **React / Vite fro
 
 ---
 
+![First UI](assets/img/firstpage.gif)
+
+---
+
 ## Architecture
 
 ```tree
