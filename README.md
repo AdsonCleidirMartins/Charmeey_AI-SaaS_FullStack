@@ -65,5 +65,32 @@ Open [http://localhost:5173](http://localhost:5173).
 
 ---
 
+## GitHub Guide & Contribution
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/charmeey/AI-Powered-Saas.git
+   cd Charmeey_AI-SaaS_FullStack
+   ```
+
+2. **Create a feature branch:**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+3. **Commit your changes:**
+   ```bash
+   git add .
+   git commit -m "feat: description of your feature"
+   ```
+
+4. **Push to GitHub and open a Pull Request:**
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+   Navigate to [GitHub Repository](https://github.com/charmeey/AI-Powered-Saas) to open a Pull Request.
+
+---
+
 ## License
 MIT
