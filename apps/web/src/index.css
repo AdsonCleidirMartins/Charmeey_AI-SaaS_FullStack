@@ -45,6 +45,18 @@
   .glass-strong {
     @apply bg-white/[0.06] backdrop-blur-2xl border border-white/[0.12];
   }
+  /* Solid card surface for the dashboard (charts were color-validated against it) */
+  .surface {
+    background-color: #13131a;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .surface-muted {
+    background-color: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .app-sidebar {
+    background-color: #0c0c12;
+  }
   .glass-hover {
     @apply transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.15];
   }
@@ -175,6 +187,31 @@ html[data-theme='light'] .placeholder\:text-white\/40::placeholder {
   color: rgba(22, 26, 38, 0.6);
 }
 
+html[data-theme='light'] .surface {
+  background-color: #ffffff;
+  border-color: rgba(22, 26, 38, 0.08);
+  box-shadow: 0 1px 2px rgba(22, 26, 38, 0.04);
+}
+html[data-theme='light'] .surface-muted {
+  background-color: rgba(22, 26, 38, 0.025);
+  border-color: rgba(22, 26, 38, 0.07);
+}
+html[data-theme='light'] .app-sidebar { background-color: #fbfcfe; }
+html[data-theme='light'] .bg-black\/50 { background-color: rgba(22, 26, 38, 0.35); }
+html[data-theme='light'] .bg-black\/60 { background-color: rgba(22, 26, 38, 0.4); }
+html[data-theme='light'] .text-emerald-300 { color: #047a3e; }
+html[data-theme='light'] .text-violet-300 { color: #0e64ad; }
+
+/* Status/accent text needs darker steps on light surfaces */
+html[data-theme='light'] .text-amber-300 { color: #8a5a00; }
+html[data-theme='light'] .text-amber-400 { color: #a86d00; }
+html[data-theme='light'] .text-red-300,
+html[data-theme='light'] .text-rose-300 { color: #b42323; }
+html[data-theme='light'] .text-rose-400 { color: #c02a2a; }
+html[data-theme='light'] .text-brand-300 { color: #0b61a7; }
+html[data-theme='light'] .text-emerald-400 { color: #047a3e; }
+html[data-theme='light'] select option { background-color: #ffffff; color: #161a26; }
+
 html[data-theme='light'] .bg-ink-950 { background-color: #f4f6fb; }
 html[data-theme='light'] .bg-ink-900 { background-color: #eceef5; }
 
@@ -236,3 +273,33 @@ html[data-theme='light'] input[type='range']::-webkit-slider-thumb {
 html[data-theme='light'] input[type='range']::-moz-range-thumb {
   border-color: #ffffff;
 }
+
+/* Dashboard chrome in light mode */
+html[data-theme='light'] .bg-ink-950\/80 { background-color: rgba(244, 246, 251, 0.85); }
+html[data-theme='light'] .ring-ink-950 { --tw-ring-color: #f4f6fb; }
+html[data-theme='light'] .bg-black\/40 { background-color: rgba(22, 26, 38, 0.04); }
+html[data-theme='light'] .bg-white\/\[0\.07\] { background-color: rgba(22, 26, 38, 0.06); }
+html[data-theme='light'] .bg-white\/15 { background-color: rgba(22, 26, 38, 0.15); }
+html[data-theme='light'] .bg-brand-600 .text-white,
+html[data-theme='light'] .bg-brand-600.text-white,
+html[data-theme='light'] .bg-brand-500 .text-white { color: #ffffff; }
+html[data-theme='light'] .border-white\/\[0\.05\] { border-color: rgba(22, 26, 38, 0.06); }
+html[data-theme='light'] .divide-white\/\[0\.05\] > * + *,
+html[data-theme='light'] .divide-white\/\[0\.06\] > * + * { border-color: rgba(22, 26, 38, 0.07); }
+html[data-theme='light'] .text-white\/45 { color: rgba(22, 26, 38, 0.64); }
+html[data-theme='light'] .text-white\/55 { color: rgba(22, 26, 38, 0.72); }
+html[data-theme='light'] .text-white\/65 { color: rgba(22, 26, 38, 0.8); }
+html[data-theme='light'] .text-white\/90 { color: rgba(22, 26, 38, 0.95); }
+html[data-theme='light'] .hover\:bg-white\/5:hover,
+html[data-theme='light'] .hover\:bg-white\/\[0\.04\]:hover { background-color: rgba(22, 26, 38, 0.05); }
+html[data-theme='light'] .hover\:bg-white\/\[0\.02\]:hover,
+html[data-theme='light'] .hover\:bg-white\/\[0\.03\]:hover { background-color: rgba(22, 26, 38, 0.03); }
+html[data-theme='light'] .bg-white\/\[0\.025\] { background-color: rgba(22, 26, 38, 0.025); }
+html[data-theme='light'] .hover\:text-white:hover { color: #161a26; }
+html[data-theme='light'] .ring-\[\#13131a\] { --tw-ring-color: #ffffff; }
+html[data-theme='light'] .ring-white\/5 { --tw-ring-color: rgba(22, 26, 38, 0.06); }
+html[data-theme='light'] [class*='bg-gradient-'] .text-white\/80 { color: rgba(255, 255, 255, 0.85); }
+html[data-theme='light'] [class*='bg-gradient-'] .border-white\/30 { border-color: rgba(255, 255, 255, 0.35); }
+
+/* Anchor targets clear the floating navbar */
+section[id] { scroll-margin-top: 88px; }

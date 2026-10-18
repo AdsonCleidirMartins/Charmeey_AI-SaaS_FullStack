@@ -1,119 +1,133 @@
-import { useNavigate } from 'react-router-dom';
+import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { Github, Twitter, Linkedin } from 'lucide-react';
+import { useToast } from '@/context/ToastContext';
 
-const footerLinks = [
+const columns: { title: string; links: { label: string; href: string; route?: boolean }[] }[] = [
   {
     title: 'Product',
-    links: ['Features', 'Playground', 'Pricing', 'Changelog', 'Roadmap'],
+    links: [
+      { label: 'Features', href: '#features' },
+      { label: 'How it works', href: '#how' },
+      { label: 'Pricing', href: '#pricing' },
+      { label: 'Live demo', href: '/dashboard', route: true },
+    ],
   },
   {
-    title: 'Resources',
-    links: ['Documentation', 'API Reference', 'Tutorials', 'Blog', 'Community'],
+    title: 'Developers',
+    links: [
+      { label: 'API keys', href: '/dashboard/api-keys', route: true },
+      { label: 'Integrations', href: '/dashboard/integrations', route: true },
+      { label: 'System status', href: '/dashboard/support', route: true },
+    ],
   },
   {
     title: 'Company',
-    links: ['About', 'Careers', 'Press Kit', 'Partners', 'Contact'],
-  },
-  {
-    title: 'Legal',
-    links: ['Privacy Policy', 'Terms of Service', 'Security', 'Compliance', 'SLA'],
+    links: [
+      { label: 'Customers', href: '#customers' },
+      { label: 'FAQ', href: '#faq' },
+      { label: 'Contact', href: '/dashboard/support', route: true },
+    ],
   },
 ];
 
-const linkHrefs: Record<string, string> = {
-  Features: '#features',
-  Playground: '#playground',
-  Pricing: '#pricing',
-  Blog: '#blog',
-  Community: '#room',
-};
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export default function Footer() {
-  const navigate = useNavigate();
-  return (
-    <footer className="relative border-t border-white/[0.06] pt-16 pb-8 overflow-hidden">
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-brand-600/5 rounded-full blur-[100px]" />
+  const toast = useToast();
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-6 gap-8 mb-12">
-          {/* Brand */}
-          <div className="lg:col-span-2">
-            <a href="#" className="flex items-center gap-2.5 mb-4">
-              <img src="/favicon.svg" alt="CharmeeyAI" className="h-9 w-9" />
-              <span className="text-lg font-bold tracking-tight">
+  const subscribe = (e: FormEvent) => {
+    e.preventDefault();
+    if (!EMAIL_RE.test(email.trim())) {
+      setError('Enter a valid email address.');
+      return;
+    }
+    setError('');
+    setEmail('');
+    toast({ kind: 'success', title: 'You’re subscribed', description: 'Monthly product updates, no spam.' });
+  };
+
+  return (
+    <footer className="relative border-t border-white/[0.06] pt-14 pb-8">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-10 lg:grid-cols-[1.4fr_2fr]">
+          <div>
+            <a href="#product" className="flex items-center gap-2.5">
+              <img src="/favicon.svg" alt="" className="h-8 w-8" />
+              <span className="text-lg font-semibold tracking-tight text-white">
                 Charmeey<span className="text-brand-400">AI</span>
               </span>
             </a>
-            <p className="text-sm text-white/50 max-w-xs leading-relaxed mb-5">
-              The enterprise AI platform powered by Google Gemini — build, deploy, and scale intelligent applications.
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/50">
+              The AI workspace for chat, data analysis and team administration — powered by Google Gemini.
             </p>
-            <div className="flex items-center gap-3">
-              {[
-                { icon: Github, label: 'GitHub' },
-                { icon: Twitter, label: 'Twitter' },
-                { icon: Linkedin, label: 'LinkedIn' },
-              ].map(({ icon: Icon, label }) => (
-                <a
-                  key={label}
-                  href="#"
-                  aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg glass glass-hover text-white/60 hover:text-white"
-                >
-                  <Icon className="h-4 w-4" />
-                </a>
-              ))}
-            </div>
+            <form onSubmit={subscribe} noValidate className="mt-6 max-w-sm">
+              <label htmlFor="footer-email" className="text-xs font-medium text-white/60">
+                Get monthly product updates
+              </label>
+              <div className="mt-2 flex gap-2">
+                <input
+                  id="footer-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  className="min-w-0 flex-1 rounded-lg surface-muted px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                />
+                <button type="submit" className="shrink-0 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-500">
+                  Subscribe
+                </button>
+              </div>
+              {error && <p role="alert" className="mt-1.5 text-xs text-rose-400">{error}</p>}
+            </form>
           </div>
 
-          {/* Link columns */}
-          {footerLinks.map((col) => (
-            <div key={col.title}>
-              <h4 className="text-sm font-semibold text-white mb-4">{col.title}</h4>
-              <ul className="space-y-2.5">
-                {col.links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href={linkHrefs[link] || '#'}
-                      className="text-sm text-white/50 hover:text-white transition-colors"
-                    >
-                      {link}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        {/* Newsletter CTA */}
-        <div className="glass rounded-2xl p-6 mb-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <h4 className="text-sm font-semibold text-white">Stay in the loop</h4>
-            <p className="text-sm text-white/50 mt-1">Get product updates and AI insights delivered monthly.</p>
-          </div>
-          <div className="flex w-full sm:w-auto gap-2">
-            <input
-              type="email"
-              placeholder="you@company.com"
-              className="flex-1 sm:w-64 rounded-lg glass px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-brand-500/40 transition-colors"
-            />
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="rounded-lg bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40 transition-all"
-            >
-              Subscribe
-            </button>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-8">
+            {columns.map((col) => (
+              <div key={col.title}>
+                <h4 className="text-sm font-semibold text-white">{col.title}</h4>
+                <ul className="mt-4 space-y-2.5">
+                  {col.links.map((l) => (
+                    <li key={l.label}>
+                      {l.route ? (
+                        <Link to={l.href} className="text-sm text-white/50 hover:text-white transition-colors">
+                          {l.label}
+                        </Link>
+                      ) : (
+                        <a href={l.href} className="text-sm text-white/50 hover:text-white transition-colors">
+                          {l.label}
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-white/[0.06]">
-          <p className="text-xs text-white/40">
-            © 2026 CharmeeyAI, Inc. All rights reserved.
-          </p>
-          <div className="flex items-center gap-2 text-xs text-white/40">
-            <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-            <span>All systems operational</span>
+        <div className="mt-12 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 border-t border-white/[0.06] pt-6">
+          <p className="text-xs text-white/40">© 2026 CharmeeyAI. A portfolio demo project.</p>
+          <div className="flex items-center gap-1">
+            {[
+              { icon: Github, label: 'GitHub', href: 'https://github.com/charmeey/Charmeey_AI-SaaS_FullStack' },
+              { icon: Twitter, label: 'Twitter', href: '#' },
+              { icon: Linkedin, label: 'LinkedIn', href: '#' },
+            ].map(({ icon: Icon, label, href }) => (
+              <a
+                key={label}
+                href={href}
+                aria-label={label}
+                target={href.startsWith('http') ? '_blank' : undefined}
+                rel={href.startsWith('http') ? 'noreferrer' : undefined}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/45 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <Icon className="h-4 w-4" />
+              </a>
+            ))}
           </div>
         </div>
       </div>

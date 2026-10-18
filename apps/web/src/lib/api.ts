@@ -1,7 +1,7 @@
 const apiBase = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '');
 export const API_URL = apiBase || '';
 const wsProto = (apiBase ?? location.protocol).startsWith('https') ? 'wss' : 'ws';
-let wsHost = apiBase ? apiBase.replace(/^https?:\/\//, '') : location.host;
+const wsHost = apiBase ? apiBase.replace(/^https?:\/\//, '') : location.host;
 export const API_WS_URL = `${wsProto}://${wsHost}`;
 
 const TOKEN_KEY = 'charmeeyai_token';
@@ -39,21 +39,56 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
     ...(options.headers || {}),
   };
 
-  const res = await fetch(`${API_URL}${path}`, {
-    method: options.method || 'GET',
-    headers,
-    body: options.body,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method: options.method || 'GET',
+      headers,
+      body: options.body,
+    });
+  } catch {
+    throw new ApiError('Cannot reach the CharmeeyAI service.', 0, true);
+  }
 
-  const data = await res.json().catch(() => null);
+  const raw = await res.text().catch(() => '');
+  let data: { detail?: unknown; message?: unknown } | null = null;
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = null;
+  }
 
   if (!res.ok) {
+    // Gateway errors, or an empty 500 from the dev proxy, mean the backend is down
+    const offline = res.status >= 502 || (res.status === 500 && !raw.trim());
     const detail = data?.detail || data?.message || `Request failed (${res.status})`;
-    const message = typeof detail === 'string' ? detail : JSON.stringify(detail);
-    throw new Error(message);
+    const message = typeof detail === 'string' ? detail : formatValidationDetail(detail);
+    throw new ApiError(message, res.status, offline);
   }
 
   return data as T;
+}
+
+/** Error thrown by apiRequest. `offline` is true when the backend could not be reached. */
+export class ApiError extends Error {
+  constructor(message: string, public status: number, public offline: boolean) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export function isOfflineError(err: unknown): boolean {
+  return err instanceof ApiError && err.offline;
+}
+
+// FastAPI 422 responses carry a list of { loc, msg } objects
+function formatValidationDetail(detail: unknown): string {
+  if (Array.isArray(detail)) {
+    return detail
+      .map((d) => (d && typeof d === 'object' && 'msg' in d ? String((d as { msg: unknown }).msg) : String(d)))
+      .join(' ');
+  }
+  return JSON.stringify(detail);
 }
 
 export async function signUp(name: string, email: string, password: string): Promise<{ token: string; user: User }> {
@@ -111,10 +146,16 @@ export async function generateChat(
     }
   }
 
-  return apiRequest('/api/v1/generate', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  try {
+    return await apiRequest<{ response: string; model: string }>('/api/v1/generate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    if (!isOfflineError(err)) throw err;
+    const { mockGenerate } = await import('./mockAi');
+    return mockGenerate(prompt);
+  }
 }
 
 export interface RoomMessage {

@@ -1,3 +1,4 @@
+import { isMockToken } from '@/lib/mockAuth';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   MessagesSquare,
@@ -264,7 +265,7 @@ export default function RoomChat({ className = '', initialDmPeer = null }: RoomC
         appendUnique(res.messages);
         setTimeout(scrollToBottom, 50);
       })
-      .catch(() => setError('Could not load chat history.'));
+      .catch(() => setError('Team chat needs the backend service — start services/ai to go live.'));
 
     // Load the full member list (registered users) once signed in
     if (!loading && getToken() && !isDemo) {
@@ -279,7 +280,7 @@ export default function RoomChat({ className = '', initialDmPeer = null }: RoomC
   }, [appendUnique, loading, isDemo]);
 
   useEffect(() => {
-    if (loading || !getToken()) return;
+    if (loading || !getToken() || isMockToken(getToken())) return;
 
     const pollTimer = window.setInterval(() => {
       reconcile();
@@ -628,29 +629,31 @@ export default function RoomChat({ className = '', initialDmPeer = null }: RoomC
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5">
+              <div className="flex shrink-0 items-center gap-1.5">
                 {dmMessages.length > 0 && (
                   <>
                     <button
                       onClick={() => setDmSelectMode(true)}
                       className="inline-flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-medium text-white/50 transition-colors hover:text-white"
                       title="Select your messages to delete"
+                      aria-label="Select your messages to delete"
                     >
                       <CheckSquare className="h-3.5 w-3.5" />
-                      Select
+                      <span className="hidden sm:inline">Select</span>
                     </button>
                     <button
                       onClick={handleDmDeleteAllMine}
                       disabled={dmDeleting}
                       className="inline-flex items-center gap-1 rounded-lg bg-rose-500/20 px-2.5 py-1.5 text-[11px] font-medium text-rose-300 transition-colors hover:bg-rose-500/30 disabled:opacity-40 disabled:hover:bg-rose-500/20"
                       title="Delete all messages you sent in this thread"
+                      aria-label="Delete all messages you sent in this thread"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      Clear mine
+                      <span className="hidden sm:inline">Clear mine</span>
                     </button>
                   </>
                 )}
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/10 px-2.5 py-1 text-[10px] font-medium text-brand-300">
+                <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-brand-500/10 px-2.5 py-1 text-[10px] font-medium text-brand-300">
                   <MessageCircle className="h-3 w-3" />
                   Private
                 </span>
@@ -816,16 +819,16 @@ export default function RoomChat({ className = '', initialDmPeer = null }: RoomC
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3 sm:px-5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-600">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-600">
               <MessagesSquare className="h-4 w-4 text-white" />
             </div>
-            <div>
-              <div className="text-sm font-semibold text-white">Community Chat</div>
-              <div className="text-[10px] text-white/40">Chat with other CharmeeyAI users</div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-white truncate">General</div>
+              <div className="hidden sm:block text-[10px] text-white/40">Workspace-wide channel</div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1.5">
             {selectMode ? (
               <>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-medium text-white/70">
@@ -858,18 +861,20 @@ export default function RoomChat({ className = '', initialDmPeer = null }: RoomC
                       onClick={() => setSelectMode(true)}
                       className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px] font-medium text-white/50 transition-colors hover:text-white"
                       title="Select messages to delete"
+                      aria-label="Select messages to delete"
                     >
                       <Trash2 className="h-3 w-3" />
-                      Select
+                      <span className="hidden sm:inline">Select</span>
                     </button>
                     <button
                       onClick={handleDeleteAllMine}
                       disabled={deleting}
                       className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/20 px-2.5 py-1 text-[10px] font-medium text-rose-300 transition-colors hover:bg-rose-500/30 disabled:opacity-40 disabled:hover:bg-rose-500/20"
                       title="Delete all of your messages"
+                      aria-label="Delete all of your messages"
                     >
                       <Trash2 className="h-3 w-3" />
-                      {deleting ? 'Deleting…' : 'Clear mine'}
+                      <span className="hidden sm:inline">{deleting ? 'Deleting…' : 'Clear mine'}</span>
                     </button>
                   </>
                 )}
@@ -879,7 +884,8 @@ export default function RoomChat({ className = '', initialDmPeer = null }: RoomC
                   }`}
                 >
                   {connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-                  {connected ? 'Live' : 'Offline'}
+                  <span className="hidden sm:inline">{connected ? 'Live' : 'Offline'}</span>
+                  <span className="sr-only sm:hidden">{connected ? 'Live' : 'Offline'}</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/10 px-2.5 py-1 text-[10px] font-medium text-brand-300">
                   <span className="relative flex h-1.5 w-1.5">
