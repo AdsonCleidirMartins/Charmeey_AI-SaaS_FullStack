@@ -307,7 +307,8 @@ export default function ChatView({
       </div>
 
       {/* Composer */}
-      <div className="px-4 sm:px-6 pb-4 pt-2">
+      {/* Right inset keeps the send button clear of the floating assistant until the composer is centered away from it */}
+      <div className="pl-4 sm:pl-6 pr-[84px] sm:pr-[92px] xl:pr-6 pb-4 pt-2">
         <div className="max-w-3xl mx-auto">
           <div className="surface rounded-2xl p-2 shadow-lg shadow-black/10 focus-within:border-brand-500/40 transition-colors">
             {attachment && (

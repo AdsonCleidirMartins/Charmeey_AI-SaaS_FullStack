@@ -74,6 +74,17 @@ function DashboardShell() {
     if (section !== 'room') setDmTarget(null);
   }, [section]);
 
+  // ?prompt=<text> (handoff from the site assistant) starts a fresh chat with the prompt prefilled
+  useEffect(() => {
+    const handed = searchParams.get('prompt');
+    if (handed === null) return;
+    setMessages([]);
+    setPrompt(handed);
+    const next = new URLSearchParams(searchParams);
+    next.delete('prompt');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   // ⌘K / Ctrl+K opens the command palette
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -134,7 +145,7 @@ function DashboardShell() {
         return <Analytics />;
       case 'room':
         return (
-          <div className="flex flex-1 min-h-0 flex-col px-4 sm:px-6 lg:px-8 py-6 sm:py-8 gap-6 max-w-7xl w-full mx-auto">
+          <div className="flex flex-1 min-h-0 flex-col px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-[88px] sm:pb-24 gap-6 max-w-7xl w-full mx-auto">
             <PageHeader title="Team Chat" description="Talk with your workspace in real time, or open a direct message." />
             <RoomChat className="flex-1 min-h-[480px]" initialDmPeer={dmTarget} />
           </div>

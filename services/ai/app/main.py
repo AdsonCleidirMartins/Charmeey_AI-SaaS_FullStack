@@ -248,6 +248,8 @@ class GenerateRequest(BaseModel):
 class GenerateResponse(BaseModel):
     response: str
     model: str
+    # True when every provider failed and `response` is a user-facing apology, not a model answer
+    error: bool = False
 
 
 class DocumentChunkRequest(BaseModel):
@@ -574,7 +576,7 @@ def generate_ai_response(req: GenerateRequest, authorization: Optional[str] = He
             f"Please try again in a moment. "
             f"[{detail}]"
         )
-        return {"response": fallback_text, "model": used_model}
+        return {"response": fallback_text, "model": used_model, "error": True}
 
 
 # ---------------------------------------------------------------------------

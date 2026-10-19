@@ -303,3 +303,4 @@ html[data-theme='light'] [class*='bg-gradient-'] .border-white\/30 { border-colo
 
 /* Anchor targets clear the floating navbar */
 section[id] { scroll-margin-top: 88px; }
+html[data-theme='light'] .placeholder-white\/30::placeholder { color: rgba(22, 26, 38, 0.5); }

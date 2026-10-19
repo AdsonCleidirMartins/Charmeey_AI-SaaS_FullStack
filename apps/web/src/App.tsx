@@ -42,7 +42,6 @@ function Landing() {
 }
 
 export default function App() {
-  const { pathname } = useLocation();
   return (
     <>
       <ScrollToTop />
@@ -53,8 +52,7 @@ export default function App() {
         <Route path="/dashboard/:section" element={<Dashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      {/* The dashboard has its own full AI Chat, so the floating assistant is landing-only */}
-      {!pathname.startsWith('/dashboard') && <ChatBot />}
+      <ChatBot />
     </>
   );
 }

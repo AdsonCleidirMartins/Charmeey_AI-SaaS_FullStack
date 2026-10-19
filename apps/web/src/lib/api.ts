@@ -122,6 +122,13 @@ export async function getDemo(): Promise<{ token: string; user: User }> {
   return apiRequest('/api/v1/auth/demo', { method: 'POST' });
 }
 
+export interface GenerateResult {
+  response: string;
+  model: string;
+  /** Set by the backend when every provider failed; `response` is then an apology, not an answer. */
+  error?: boolean;
+}
+
 export interface GenerateOptions {
   system?: string;
   attachment?: import('./attachments').Attachment;
@@ -130,7 +137,7 @@ export interface GenerateOptions {
 export async function generateChat(
   prompt: string,
   options: GenerateOptions = {}
-): Promise<{ response: string; model: string }> {
+): Promise<GenerateResult> {
   const payload: Record<string, unknown> = { prompt };
 
   if (options.system) {
@@ -147,7 +154,7 @@ export async function generateChat(
   }
 
   try {
-    return await apiRequest<{ response: string; model: string }>('/api/v1/generate', {
+    return await apiRequest<GenerateResult>('/api/v1/generate', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
