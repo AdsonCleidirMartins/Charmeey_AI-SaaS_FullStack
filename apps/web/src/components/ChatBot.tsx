@@ -1,168 +1,147 @@
-import { useState, useEffect, useRef } from 'react';
-import { Bot, Send, X, Loader2, MessageCircle, User, Copy, Check, FileText, ImagePlus, Mic, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowRight, Check, Compass, Copy, Loader2, Mic, Moon, RotateCcw, Send, Sparkles, Sun, X } from 'lucide-react';
 import { generateChat } from '@/lib/api';
-import type { Attachment } from '@/lib/attachments';
-import { readFileAsAttachment } from '@/lib/attachments';
 import Markdown from '@/components/Markdown';
-import AttachmentButton from '@/components/AttachmentButton';
 import AutoGrowTextarea from '@/components/AutoGrowTextarea';
 import useSpeechRecognition from '@/hooks/useSpeechRecognition';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import {
+  ACTIONS,
+  buildSystemPrompt,
+  extractActions,
+  matchIntent,
+  pageLabel,
+  suggestionsFor,
+  type AssistantAction,
+  type AssistantContext,
+} from '@/lib/siteKnowledge';
 
 interface ChatMessage {
   role: 'user' | 'ai';
   content: string;
-  model?: string;
-  attachment?: Attachment;
+  actions?: AssistantAction[];
+  source?: 'guide' | 'ai';
 }
 
-const SITE_ASSISTANT_SYSTEM = `You are "CharmeeyAI Assistant", a friendly embedded support assistant for the CharmeeyAI website. Your job is to make visitors feel comfortable and help them use the site, and you can also answer general questions.
-
-About the site (CharmeeyAI):
-- CharmeeyAI is an AI-powered SaaS platform: a React frontend, a FastAPI backend, and AI chat powered by Google Gemini.
-- Visitors do NOT need to sign up to try it: clicking "Launch App" or "Start Building Free" opens the app in Demo mode. Demo users can use the AI chat freely; the History, Templates, Analytics, and Settings areas are read-only until they sign in.
-- Sign Up / Sign In are available in the top navbar and in the dashboard sidebar user card.
-- The landing page has these sections: Features (#features), Playground (#playground, an interactive demo you can type into), Blog (#blog), Chat Room (#room, a live community chat), Pricing (#pricing), and Docs (#docs).
-- Users can attach images or files (PDF, text, CSV, JSON, code) to a chat message to have them analyzed.
-
-Behavior:
-- Be concise, warm, and practical. Prefer short answers (a few sentences), using light Markdown (bullets or short headings) only when it helps.
-- If the question is about the site, navigation, sign-in, pricing, or how to do something in the app, give clear step-by-step guidance.
-- If the user seems lost on the landing page, gently point them to the Playground or the "Start Building Free" button.
-- You may also answer general questions, help write/debug code, analyze attached files, and draft content.`;
-
-const suggestions = [
-  'How do I use this site without signing up?',
-  'What can I do in the Playground?',
-  'How do I create an account?',
-  'Help me write a Python script to parse CSV',
-];
+const FALLBACK: Omit<ChatMessage, 'role'> = {
+  content:
+    'I’m not sure about that one. I can explain any feature, find a setting, or take you to the right page — try one of the suggestions, or contact the team in **Help & Support**.',
+  actions: [ACTIONS.support, ACTIONS.overview],
+  source: 'guide',
+};
 
 export default function ChatBot() {
-  const { resolved } = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { resolved, setTheme } = useTheme();
+  const { user, isDemo, offline } = useAuth();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const [attachment, setAttachment] = useState<Attachment | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
-  const [selectMode, setSelectMode] = useState(false);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const {
-    supported: voiceSupported,
-    listening: voiceListening,
-    transcript: voiceTranscript,
-    toggle: toggleVoice,
-    reset: resetVoice,
-  } = useSpeechRecognition();
+  const ctx: AssistantContext = useMemo(
+    () => ({ pathname: location.pathname, search: location.search, signedIn: !!user && !isDemo, isDemo }),
+    [location.pathname, location.search, user, isDemo]
+  );
+  const suggestions = suggestionsFor(ctx);
+  const here = pageLabel(ctx);
+
+  const { supported: voiceSupported, listening, transcript, toggle: toggleVoice, reset: resetVoice } = useSpeechRecognition();
 
   useEffect(() => {
-    if (voiceListening && voiceTranscript) setInput(voiceTranscript);
-  }, [voiceListening, voiceTranscript]);
-
-  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (const item of items) {
-      if (item.kind === 'file') {
-        const file = item.getAsFile();
-        if (file) {
-          e.preventDefault();
-          try {
-            const pasted = await readFileAsAttachment(file);
-            setAttachment(pasted);
-          } catch {
-            /* ignore unsupported pastes */
-          }
-        }
-        return;
-      }
-    }
-  };
+    if (listening && transcript) setInput(transcript);
+  }, [listening, transcript]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, isGenerating, open]);
 
+  const runAction = (a: AssistantAction) => {
+    if (a.theme) {
+      setTheme(a.theme);
+      return;
+    }
+    if (!a.to) return;
+    const [path, hash] = a.to.split('#');
+    if (hash) {
+      // Landing-page anchors: scroll if we're already there, otherwise navigate then scroll
+      const scroll = () => document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
+      if (location.pathname === (path || '/')) scroll();
+      else {
+        navigate(path || '/');
+        window.setTimeout(scroll, 150);
+      }
+    } else {
+      navigate(a.to);
+    }
+    // Keep the panel out of the way on small screens once we've taken the user somewhere
+    if (window.matchMedia('(max-width: 639px)').matches) setOpen(false);
+  };
+
   const send = async (text: string) => {
-    const prompt = text.trim();
-    if ((!prompt && !attachment) || isGenerating) return;
-
-    const finalPrompt = prompt || 'Please analyze the attached file/image and tell me about it.';
+    const question = text.trim();
+    if (!question || isGenerating) return;
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', content: finalPrompt, attachment: attachment || undefined }]);
-    const sentAttachment = attachment;
-    setAttachment(null);
-    setIsGenerating(true);
+    setMessages((prev) => [...prev, { role: 'user', content: question }]);
 
+    // 1) Grounded rules: instant, consistent, and work without the backend
+    const local = matchIntent(question, ctx);
+    if (local.kind !== 'none') {
+      setMessages((prev) => [...prev, { role: 'ai', content: local.text, actions: local.actions, source: 'guide' }]);
+      return;
+    }
+
+    // 2) Anything else goes to the model, grounded in the same site knowledge
+    if (offline) {
+      setMessages((prev) => [...prev, { role: 'ai', ...FALLBACK }]);
+      return;
+    }
+    setIsGenerating(true);
     try {
-      const data = await generateChat(finalPrompt, {
-        system: SITE_ASSISTANT_SYSTEM,
-        attachment: sentAttachment || undefined,
-      });
-      const aiContent = data.response || 'Received empty response.';
-      setMessages((prev) => [...prev, { role: 'ai', content: aiContent, model: data.model }]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      setMessages((prev) => [
-        ...prev,
-        { role: 'ai', content: `Error communicating with the assistant: ${message}` },
-      ]);
+      const data = await generateChat(question, { system: buildSystemPrompt(ctx) });
+      if (data.error || data.model === 'demo-offline' || !data.response) {
+        setMessages((prev) => [...prev, { role: 'ai', ...FALLBACK }]);
+      } else {
+        const { text: answer, actions } = extractActions(data.response, question);
+        setMessages((prev) => [...prev, { role: 'ai', content: answer, actions, source: 'ai' }]);
+      }
+    } catch {
+      setMessages((prev) => [...prev, { role: 'ai', ...FALLBACK }]);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const copyMessage = async (index: number, content: string) => {
+  const copy = async (i: number, content: string) => {
     try {
       await navigator.clipboard.writeText(content);
-      setCopiedId(index);
-      setTimeout(() => setCopiedId(null), 1500);
+      setCopiedId(i);
+      window.setTimeout(() => setCopiedId(null), 1500);
     } catch {
       setCopiedId(null);
     }
   };
 
-  const toggleSelect = (index: number) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  };
-
-  const exitSelectMode = () => {
-    setSelectMode(false);
-    setSelected(new Set());
-  };
-
-  const deleteSelected = () => {
-    if (selected.size === 0) return;
-    const indices = new Set(selected);
-    setMessages((prev) => prev.filter((_, i) => !indices.has(i)));
-    exitSelectMode();
-  };
-
-  const deleteAll = () => {
-    setMessages([]);
-    exitSelectMode();
-  };
+  const actionIcon = (a: AssistantAction) => (a.theme === 'dark' ? Moon : a.theme === 'light' ? Sun : a.prompt ? Sparkles : ArrowRight);
 
   return (
     <>
-      {/* Launcher button */}
+      {/* Launcher */}
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? 'Close AI assistant' : 'Open AI assistant'}
+        aria-label={open ? 'Close site assistant' : 'Open site assistant'}
+        aria-expanded={open}
         className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-[70] flex h-14 w-14 items-center justify-center bg-transparent text-white hover:scale-105 active:scale-95 transition-all duration-300"
       >
         {open ? (
-          <X className="h-6 w-6" />
+          <span className="flex h-11 w-11 items-center justify-center rounded-full surface shadow-xl">
+            <X className="h-5 w-5" />
+          </span>
         ) : (
           <>
             <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" viewBox="0 0 512 512" className="h-9 w-9">
@@ -198,68 +177,39 @@ export default function ChatBot() {
         )}
       </button>
 
-      {/* Chat panel */}
+      {/* Panel */}
       {open && (
-        <div className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 z-[70] w-[min(30rem,calc(100vw-2rem))] h-[min(600px,calc(100vh-8rem))] flex flex-col glass-strong rounded-2xl shadow-2xl shadow-black/50 overflow-hidden animate-fade-down origin-bottom-right">
+        <div
+          role="dialog"
+          aria-label="CharmeeyAI site assistant"
+          className="fixed bottom-24 right-3 sm:bottom-28 sm:right-6 z-[70] w-[min(26rem,calc(100vw-1.5rem))] h-[min(600px,calc(100dvh-8rem))] flex flex-col surface rounded-2xl shadow-2xl shadow-black/50 overflow-hidden animate-fade-up origin-bottom-right"
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 h-14 border-b border-white/[0.06] bg-gradient-to-r from-brand-600/20 to-violet-600/10">
-            <div className="flex items-center gap-2.5">
-              <img src="/favicon.svg" alt="CharmeeyAI" className="h-8 w-8" />
-              <div>
-                <div className="text-sm font-semibold text-white leading-tight">CharmeeyAI Assistant</div>
-                <div className="flex items-center gap-1.5 text-[10px] text-white/50">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Site assistant · Online
+          <div className="flex items-center justify-between gap-3 px-4 h-14 border-b border-white/[0.06]">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <img src="/favicon.svg" alt="" className="h-8 w-8 shrink-0" />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-white leading-tight">CharmeeyAI Guide</div>
+                <div className="flex items-center gap-1.5 text-[11px] text-white/45 truncate">
+                  <Compass className="h-3 w-3 shrink-0" />
+                  Helping on: <span className="text-white/70">{here}</span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {selectMode ? (
-                <>
-                  <span className="text-xs text-white/60">{selected.size} selected</span>
-                  <button
-                    onClick={deleteSelected}
-                    disabled={selected.size === 0}
-                    className="inline-flex items-center gap-1 rounded-lg bg-rose-500/20 px-2.5 py-1.5 text-[11px] font-medium text-rose-300 transition-colors hover:bg-rose-500/30 disabled:opacity-40 disabled:hover:bg-rose-500/20"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Delete
-                  </button>
-                  <button
-                    onClick={exitSelectMode}
-                    className="inline-flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-medium text-white/50 transition-colors hover:text-white"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  {messages.length > 0 && (
-                    <>
-                      <button
-                        onClick={() => setSelectMode(true)}
-                        className="inline-flex items-center gap-1 rounded-lg bg-white/5 px-2.5 py-1.5 text-[11px] font-medium text-white/50 transition-colors hover:text-white"
-                        title="Select messages to delete"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        Select
-                      </button>
-                      <button
-                        onClick={deleteAll}
-                        className="inline-flex items-center gap-1 rounded-lg bg-rose-500/20 px-2.5 py-1.5 text-[11px] font-medium text-rose-300 transition-colors hover:bg-rose-500/30"
-                        title="Clear the conversation"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span className="whitespace-nowrap">Clear all</span>
-                      </button>
-                    </>
-                  )}
-                </>
+            <div className="flex items-center gap-1">
+              {messages.length > 0 && (
+                <button
+                  onClick={() => setMessages([])}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 hover:text-white hover:bg-white/5"
+                  aria-label="Start over"
+                  title="Start over"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </button>
               )}
               <button
                 onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg glass glass-hover text-white/60 hover:text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-white/45 hover:text-white hover:bg-white/5"
                 aria-label="Close assistant"
               >
                 <X className="h-4 w-4" />
@@ -269,208 +219,115 @@ export default function ChatBot() {
 
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center text-center pt-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-violet-600 mb-3">
-                  <MessageCircle className="h-6 w-6 text-white" />
-                </div>
-                <p className="text-sm font-medium text-white">Hi! I'm the CharmeeyAI site assistant.</p>
-                <p className="text-xs text-white/50 mt-1 mb-4 max-w-[260px]">
-                  I can help you explore this site, create an account, or answer anything else. You can
-                  even attach an image or file.
+            {messages.length === 0 && (
+              <div className="pt-2">
+                <p className="text-sm font-medium text-white">Hi! I’m your guide to CharmeeyAI.</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/50">
+                  Ask how anything works and I’ll explain it — and take you straight there. For writing, code or file analysis, I’ll hand you
+                  over to AI Chat.
                 </p>
-                <div className="flex flex-wrap justify-center gap-2">
+                <p className="mt-5 mb-2 text-[11px] font-medium text-white/35">Suggested for {here}</p>
+                <div className="flex flex-col items-start gap-1.5">
                   {suggestions.map((s) => (
                     <button
                       key={s}
                       onClick={() => send(s)}
-                      className="text-xs text-white/60 hover:text-white glass rounded-full px-3 py-1.5 transition-colors hover:border-white/20"
+                      className="rounded-full border border-white/10 px-3 py-1.5 text-left text-xs text-white/70 hover:text-white hover:border-brand-500/40 hover:bg-brand-500/5 transition-colors"
                     >
                       {s}
                     </button>
                   ))}
                 </div>
               </div>
-            ) : (
-              messages.map((msg, i) => {
-                const isSelected = selected.has(i);
-                return (
-                <div
-                  key={i}
-                  onClick={selectMode ? () => toggleSelect(i) : undefined}
-                  className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''} ${
-                    selectMode ? 'cursor-pointer' : ''
-                  }`}
-                >
-                  {selectMode && (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleSelect(i);
-                      }}
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
-                        isSelected ? 'bg-brand-500 border-brand-500' : 'border-white/30 hover:border-white/60'
-                      }`}
-                      role="checkbox"
-                      aria-checked={isSelected}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          toggleSelect(i);
-                        }
-                      }}
-                    >
-                      {isSelected && <Check className="h-3 w-3 text-white" />}
+            )}
+
+            {messages.map((msg, i) =>
+              msg.role === 'user' ? (
+                <div key={i} className="flex justify-end">
+                  <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-brand-600 px-3.5 py-2 text-sm text-white whitespace-pre-line">{msg.content}</div>
+                </div>
+              ) : (
+                <div key={i} className="flex gap-2.5">
+                  <img src="/favicon.svg" alt="" className="mt-0.5 h-6 w-6 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm leading-relaxed text-white/80">
+                      <Markdown content={msg.content} />
                     </div>
-                  )}
-                  <div
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-                      msg.role === 'user' ? 'bg-white/5' : 'bg-gradient-to-br from-brand-500 to-violet-500'
-                    }`}
-                  >
-                    {msg.role === 'user' ? (
-                      <User className="h-3.5 w-3.5 text-white/60" />
-                    ) : (
-                      <Bot className="h-3.5 w-3.5 text-white" />
-                    )}
-                  </div>
-                  <div
-                    className={`max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed transition-opacity ${
-                      msg.role === 'user'
-                        ? 'bg-gradient-to-r from-brand-600 to-violet-600 text-white rounded-tr-none'
-                        : 'glass text-white/80 rounded-tl-none'
-                    } ${selectMode && !isSelected ? 'opacity-40' : ''}`}
-                  >
-                    {msg.attachment && (
-                      <div className="flex items-center gap-2 mb-2 rounded-lg bg-black/20 px-2.5 py-1.5 text-xs">
-                        {msg.attachment.preview ? (
-                          <img
-                            src={msg.attachment.preview}
-                            alt={msg.attachment.name}
-                            className="h-8 w-8 rounded object-cover"
-                          />
-                        ) : (
-                          <FileText className="h-4 w-4 text-white/50" />
-                        )}
-                        <span className="truncate text-white/60">{msg.attachment.name}</span>
+                    {msg.actions && msg.actions.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {msg.actions.map((a) => {
+                          const Icon = actionIcon(a);
+                          return (
+                            <button
+                              key={a.id}
+                              onClick={() => runAction(a)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-500/30 bg-brand-500/10 px-2.5 py-1.5 text-xs font-medium text-brand-300 hover:bg-brand-500/20 transition-colors"
+                            >
+                              {a.label}
+                              <Icon className="h-3.5 w-3.5" />
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
-                    <div className="whitespace-pre-line">
-                      {msg.role === 'ai' ? <Markdown content={msg.content} /> : msg.content}
-                    </div>
-                    {msg.model && (
-                      <span className="mt-1.5 block text-[9px] font-mono text-white/30">{msg.model}</span>
-                    )}
-                    {msg.role === 'ai' && (
-                      <button
-                        onClick={() => copyMessage(i, msg.content)}
-                        className="mt-2 inline-flex items-center gap-1 text-[10px] text-white/40 hover:text-white/70 transition-colors"
-                      >
-                        {copiedId === i ? (
-                          <>
-                            <Check className="h-3 w-3 text-emerald-400" />
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-3 w-3" />
-                            Copy
-                          </>
-                        )}
+                    <div className="mt-1.5 flex items-center gap-2 text-[10px] text-white/30">
+                      <span>{msg.source === 'ai' ? 'AI answer · grounded in site docs' : 'From the CharmeeyAI guide'}</span>
+                      <button onClick={() => copy(i, msg.content)} className="inline-flex items-center gap-1 hover:text-white/70" aria-label="Copy answer">
+                        {copiedId === i ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
                       </button>
-                    )}
+                    </div>
                   </div>
                 </div>
-                );
-              })
+              )
             )}
 
             {isGenerating && (
-              <div className="flex gap-2.5">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500">
-                  <Loader2 className="h-3.5 w-3.5 text-white animate-spin" />
-                </div>
-                <div className="glass rounded-xl rounded-tl-none px-3.5 py-2.5 flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <div className="h-1.5 w-1.5 rounded-full bg-brand-400 animate-bounce-dot" style={{ animationDelay: '0s' }} />
-                    <div className="h-1.5 w-1.5 rounded-full bg-brand-400 animate-bounce-dot" style={{ animationDelay: '0.2s' }} />
-                    <div className="h-1.5 w-1.5 rounded-full bg-brand-400 animate-bounce-dot" style={{ animationDelay: '0.4s' }} />
-                  </div>
-                  <span className="text-xs text-white/40">Thinking...</span>
-                </div>
+              <div className="flex items-center gap-2.5">
+                <Loader2 className="h-4 w-4 animate-spin text-brand-400" />
+                <span className="text-xs text-white/40">Looking that up…</span>
               </div>
             )}
           </div>
 
           {/* Input */}
           <div className="p-3 border-t border-white/[0.06]">
-            {attachment && (
-              <div className="mb-2 flex items-center gap-2 rounded-lg glass px-2.5 py-1.5 text-xs">
-                {attachment.preview ? (
-                  <img src={attachment.preview} alt={attachment.name} className="h-8 w-8 rounded object-cover" />
-                ) : (
-                  <ImagePlus className="h-4 w-4 text-white/50" />
-                )}
-                <span className="truncate text-white/60">{attachment.name}</span>
-                <button
-                  onClick={() => setAttachment(null)}
-                  className="ml-auto text-white/40 hover:text-white"
-                  aria-label="Remove attachment"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
-            <div className="glass rounded-xl p-1.5 flex items-end gap-1.5">
-              <AttachmentButton onAttach={setAttachment} disabled={isGenerating} />
+            <div className="surface-muted rounded-xl p-1.5 flex items-end gap-1">
               <AutoGrowTextarea
                 value={input}
                 onChange={setInput}
-                onPaste={handlePaste}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    send(input);
+                    void send(input);
                   }
                 }}
-                placeholder=""
+                placeholder={`Ask about ${here === 'Home' ? 'CharmeeyAI' : here}…`}
                 disabled={isGenerating}
-                maxLines={7}
+                maxLines={5}
               />
               {voiceSupported && (
                 <button
                   onClick={() => {
-                    if (voiceListening) {
-                      resetVoice();
-                      toggleVoice();
-                    } else {
-                      toggleVoice();
-                    }
+                    if (listening) resetVoice();
+                    toggleVoice();
                   }}
-                  title={voiceListening ? 'Stop recording' : 'Speak to type'}
-                  aria-label={voiceListening ? 'Stop recording' : 'Speak to type'}
+                  aria-label={listening ? 'Stop recording' : 'Speak to type'}
                   className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                    voiceListening
-                      ? 'text-brand-300 bg-brand-600/20 animate-pulse'
-                      : 'text-white/40 hover:text-white hover:bg-white/5'
+                    listening ? 'text-brand-300 bg-brand-600/20 animate-pulse' : 'text-white/40 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   <Mic className="h-4 w-4" />
                 </button>
               )}
               <button
-                onClick={() => send(input)}
-                disabled={(!input.trim() && !attachment) || isGenerating}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-600 to-violet-600 text-white shadow-lg shadow-brand-500/20 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-brand-500/40 transition-all"
+                onClick={() => void send(input)}
+                disabled={!input.trim() || isGenerating}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white hover:bg-brand-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 aria-label="Send message"
               >
                 <Send className="h-4 w-4" />
               </button>
             </div>
-            <p className="text-[10px] text-white/30 text-center mt-1.5 font-mono">
-              CharmeeyAI can make mistakes. Verify important information.
-            </p>
           </div>
         </div>
       )}

@@ -1,1 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 512 512"><path d="M183.1.1c-10 0-18.1 8.1-18.1 18.1v126.7h334.7L347.3.1zM512 183.2c0-10-8-18.1-18.1-18.1H367.3v334.7L512 347.3zM328.9 511.9c10 0 18.1-8.1 18.1-18.1V367.2H12.2l152.4 144.7zM0 328.9c0 10 8.1 18.1 18.1 18.1h126.6V12.3L0 164.7z" style="fill:#117aca"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CharmeeyAI">
+  <defs>
+    <linearGradient id="charmeey-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3d9fe2"/>
+      <stop offset="1" stop-color="#0b4f8f"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#charmeey-bg)"/>
+  <!-- "C" arc -->
+  <path d="M38 23.6 A13 13 0 1 0 38 40.4" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+  <!-- AI spark -->
+  <path d="M47 25.5c.7 3.9 1.9 5.1 5.8 5.8.3.05.3.6 0 .7-3.9.7-5.1 1.9-5.8 5.8-.05.3-.6.3-.7 0-.7-3.9-1.9-5.1-5.8-5.8-.3-.05-.3-.6 0-.7 3.9-.7 5.1-1.9 5.8-5.8.05-.3.6-.3.7 0z" fill="#fff"/>
+</svg>

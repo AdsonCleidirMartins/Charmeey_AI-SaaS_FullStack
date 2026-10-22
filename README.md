@@ -4,9 +4,22 @@ Modern, production-grade AI-powered SaaS platform combining a **React / Vite fro
 
 ---
 
-![First UI](assets/img/firstpage.gif)
+![CharmeeyAI preview](apps/web/public/og-image.png)
 
 ---
+
+## Features
+
+- **AI Chat**: multimodal Gemini chat (text, voice, images, documents) with copy/export.
+- **Data Studio**: upload a CSV (or use a sample dataset) to get column profiling, auto-insights (trends, correlations, outliers) and a bar/line/area/scatter chart builder, then send the findings to the AI.
+- **Usage Analytics**: KPI tiles with period-over-period deltas, requests by model, latency (p50/p95), spend, feature and team usage, a chart/table toggle and CSV export.
+- **Prompt Templates & History**: a searchable template library and conversation history that open straight into the chat.
+- **Team Chat**: real-time room and DMs over WebSockets with notifications.
+- **Auth**: sign up / sign in with PBKDF2-hashed passwords and expiring server-side sessions, plus a demo workspace.
+- **SaaS admin**: an Overview home with an onboarding checklist, workspace switcher, Members (invites, roles, seat limits), API Keys & webhooks, Integrations, Billing (plans, usage meters, invoices), Audit Log (filters, CSV export), Help & Support (FAQ, tickets, status) and tabbed Settings (profile, password & 2FA, sessions, notifications, appearance, workspace).
+- **Productivity**: ⌘K / Ctrl+K command palette, notifications inbox, toasts, collapsible grouped sidebar, light/dark themes.
+
+> **Portfolio / offline mode:** if the FastAPI service is unreachable, the frontend falls back to a browser-local mock (accounts in `localStorage`, canned AI replies) and shows an "Offline demo" badge. Dashboard metrics are deterministic sample data (`apps/web/src/lib/mockData.ts`).
 
 ## Architecture
 

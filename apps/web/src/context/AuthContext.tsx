@@ -6,14 +6,18 @@ import {
   clearToken,
   getMe,
   getDemo,
+  isOfflineError,
   signIn as apiSignIn,
   signUp as apiSignUp,
   signOutRequest,
 } from '@/lib/api';
+import { isMockToken, mockDemo, mockMe, mockSignIn, mockSignOut, mockSignUp } from '@/lib/mockAuth';
 
 interface AuthContextValue {
   user: User | null;
   isDemo: boolean;
+  /** True when the backend is unreachable and auth runs against the local mock store. */
+  offline: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
@@ -22,33 +26,74 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+/** Run the live API call; fall back to the mock when the backend is down. */
+async function withFallback<T>(live: () => Promise<T>, mock: () => Promise<T> | T): Promise<{ value: T; offline: boolean }> {
+  try {
+    return { value: await live(), offline: false };
+  } catch (err) {
+    if (!isOfflineError(err)) throw err;
+    return { value: await mock(), offline: true };
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [offline, setOffline] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const startDemo = async () => {
+    const { value, offline: off } = await withFallback(getDemo, mockDemo);
+    setToken(value.token);
+    setUser(value.user);
+    setOffline(off);
+  };
 
   useEffect(() => {
     let cancelled = false;
 
     const bootstrap = async () => {
       const token = getToken();
-      if (token) {
-        const me = await getMe(token).catch(() => ({ authenticated: false, user: undefined }));
-        if (cancelled) return;
-        if (me.authenticated && me.user) {
-          setUser(me.user!);
+      if (token && isMockToken(token)) {
+        const me = mockMe(token);
+        if (me) {
+          if (cancelled) return;
+          setUser(me);
+          setOffline(true);
           setLoading(false);
           return;
         }
         clearToken();
+      } else if (token) {
+        try {
+          const me = await getMe(token);
+          if (cancelled) return;
+          if (me.authenticated && me.user) {
+            setUser(me.user);
+            setLoading(false);
+            return;
+          }
+          clearToken();
+        } catch (err) {
+          if (!isOfflineError(err)) {
+            clearToken();
+          } else {
+            // Backend down: browse as the demo user but keep the real token so the
+            // session resumes once the service is back
+            if (cancelled) return;
+            setUser(mockDemo().user);
+            setOffline(true);
+            setLoading(false);
+            return;
+          }
+        }
       }
 
-      const demo = await getDemo().catch(() => null);
-      if (cancelled) return;
-      if (demo) {
-        setToken(demo.token);
-        setUser(demo.user);
+      try {
+        if (!cancelled) await startDemo();
+      } catch {
+        if (!cancelled) setUser(null);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
 
     bootstrap();
@@ -58,28 +103,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const res = await apiSignIn(email, password);
-    setToken(res.token);
-    setUser(res.user);
+    const { value, offline: off } = await withFallback(
+      () => apiSignIn(email, password),
+      () => mockSignIn(email, password)
+    );
+    setToken(value.token);
+    setUser(value.user);
+    setOffline(off);
   };
 
   const signUp = async (name: string, email: string, password: string) => {
-    const res = await apiSignUp(name, email, password);
-    setToken(res.token);
-    setUser(res.user);
+    const { value, offline: off } = await withFallback(
+      () => apiSignUp(name, email, password),
+      () => mockSignUp(name, email, password)
+    );
+    setToken(value.token);
+    setUser(value.user);
+    setOffline(off);
   };
 
   const signOut = async () => {
     const token = getToken();
-    if (token) {
+    if (token && isMockToken(token)) {
+      mockSignOut(token);
+    } else if (token) {
       await signOutRequest(token).catch(() => undefined);
     }
     clearToken();
-    const demo = await getDemo().catch(() => null);
-    if (demo) {
-      setToken(demo.token);
-      setUser(demo.user);
-    } else {
+    try {
+      await startDemo();
+    } catch {
       setUser(null);
     }
   };
@@ -87,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isDemo = !!user?.is_demo;
 
   return (
-    <AuthContext.Provider value={{ user, isDemo, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, isDemo, offline, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

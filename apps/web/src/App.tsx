@@ -3,13 +3,16 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Features from '@/components/Features';
-import Playground from '@/components/Playground';
-import Blog from '@/components/Blog';
-import Community from '@/components/Community';
+import LogoStrip from '@/components/landing/LogoStrip';
+import HowItWorks from '@/components/landing/HowItWorks';
+import Testimonials from '@/components/landing/Testimonials';
+import Faq from '@/components/landing/Faq';
+import FinalCta from '@/components/landing/FinalCta';
 import Pricing from '@/components/Pricing';
 import Footer from '@/components/Footer';
 import Dashboard from '@/components/Dashboard';
 import AuthPage from '@/components/AuthPage';
+import ChatBot from '@/components/ChatBot';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -21,15 +24,17 @@ function ScrollToTop() {
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-ink-950 relative">
+    <div className="min-h-screen bg-ink-950 relative overflow-x-clip">
       <Navbar />
       <main>
         <Hero />
+        <LogoStrip />
         <Features />
-        <Playground />
-        <Blog />
-        <Community />
+        <HowItWorks />
+        <Testimonials />
         <Pricing />
+        <Faq />
+        <FinalCta />
       </main>
       <Footer />
     </div>
@@ -43,10 +48,11 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/dashboard" element={<Navigate to="/dashboard/chats" replace />} />
+        <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
         <Route path="/dashboard/:section" element={<Dashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <ChatBot />
     </>
   );
 }

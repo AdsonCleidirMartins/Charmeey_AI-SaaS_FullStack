@@ -5,6 +5,7 @@ from typing import List, Optional, Dict
 import os
 import io
 import base64
+import re
 import secrets
 import hashlib
 import hmac
@@ -181,7 +182,11 @@ def resolve_user(db: SASession, authorization: Optional[str]) -> Optional[dict]:
     if scheme.lower() != "bearer" or not token:
         return None
     session = db.query(AuthSession).filter(AuthSession.token == token.strip()).first()
-    if not session or session.expires_at < datetime.utcnow():
+    if not session:
+        return None
+    if session.expires_at < datetime.utcnow():
+        db.delete(session)
+        db.commit()
         return None
     user = db.query(User).filter(User.id == session.user_id).first()
     if not user:
@@ -243,6 +248,8 @@ class GenerateRequest(BaseModel):
 class GenerateResponse(BaseModel):
     response: str
     model: str
+    # True when every provider failed and `response` is a user-facing apology, not a model answer
+    error: bool = False
 
 
 class DocumentChunkRequest(BaseModel):
@@ -296,6 +303,11 @@ def health_check(db: SASession = Depends(get_db)):
 # ---------------------------------------------------------------------------
 # Auth endpoints
 # ---------------------------------------------------------------------------
+EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]{2,}$")
+MIN_PASSWORD_LENGTH = 8
+MAX_PASSWORD_LENGTH = 128  # bounds PBKDF2 work per request
+
+
 def normalize_email(email: str) -> str:
     return email.strip().lower()
 
@@ -303,16 +315,23 @@ def normalize_email(email: str) -> str:
 @app.post("/api/v1/auth/signup", response_model=AuthResponse)
 def signup(req: SignupRequest, db: SASession = Depends(get_db)):
     email = normalize_email(req.email)
-    if not req.name.strip() or not email or not req.password:
+    name = req.name.strip()
+    if not name or not email or not req.password:
         raise HTTPException(status_code=400, detail="Name, email, and password are required.")
-    if len(req.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+    if len(name) > 80:
+        raise HTTPException(status_code=400, detail="Name must be 80 characters or fewer.")
+    if len(email) > 254 or not EMAIL_RE.match(email):
+        raise HTTPException(status_code=400, detail="Enter a valid email address.")
+    if len(req.password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Password must be at least {MIN_PASSWORD_LENGTH} characters.")
+    if len(req.password) > MAX_PASSWORD_LENGTH:
+        raise HTTPException(status_code=400, detail=f"Password must be {MAX_PASSWORD_LENGTH} characters or fewer.")
 
     existing = db.query(User).filter(User.email == email).first()
     if existing:
         raise HTTPException(status_code=409, detail="An account with this email already exists.")
 
-    user = User(name=req.name.strip(), email=email, password_hash=hash_password(req.password), is_demo=False)
+    user = User(name=name, email=email, password_hash=hash_password(req.password), is_demo=False)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -324,6 +343,8 @@ def signup(req: SignupRequest, db: SASession = Depends(get_db)):
 @app.post("/api/v1/auth/signin", response_model=AuthResponse)
 def signin(req: SigninRequest, db: SASession = Depends(get_db)):
     email = normalize_email(req.email)
+    if len(req.password) > MAX_PASSWORD_LENGTH:
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
     user = db.query(User).filter(User.email == email).first()
     if not user or not user.password_hash or not verify_password(req.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
@@ -555,7 +576,7 @@ def generate_ai_response(req: GenerateRequest, authorization: Optional[str] = He
             f"Please try again in a moment. "
             f"[{detail}]"
         )
-        return {"response": fallback_text, "model": used_model}
+        return {"response": fallback_text, "model": used_model, "error": True}
 
 
 # ---------------------------------------------------------------------------
